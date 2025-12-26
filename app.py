@@ -37,9 +37,10 @@ if st.session_state.done:
     st.divider()
     st.subheader("Weiter zur Nachbefragung")
 
-    # TODO: Hier später deine LimeSurvey-URL eintragen
-    LIME_URL = "https://DEINNAME.limesurvey.net/123456"
+    LIME2_URL = "https://umfragen.tu-dortmund.de/index.php/197954?lang=de"
+    redirect_url = f"{LIME2_URL}&rid={rid}&group={group}&rec={st.session_state.recommendation}"
 
-    redirect_url = f"{LIME_URL}?rid={rid}&group={group}&rec={st.session_state.recommendation}"
     st.link_button("Weiter zu Teil 2", redirect_url)
+
+
 
