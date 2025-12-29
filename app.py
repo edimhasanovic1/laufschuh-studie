@@ -405,9 +405,6 @@ with page_slot.container():
 
         st.write("**Preis (100–300 €):**")
 
-        # ✅ EINZIGE ÄNDERUNG: kein vorbefüllter Wert (kein "160" mehr).
-        # Wenn noch kein Preis gesetzt ist: starte bei min_value, aber zeige leer via placeholder-Label.
-        # Technisch muss number_input einen value haben -> wir setzen 100, aber ohne "Default-Story".
         price_value = st.session_state.prefs["preis"]
         if price_value is None:
             price_value = 100
@@ -477,7 +474,10 @@ with page_slot.container():
                 st.rerun()
 
     elif st.session_state.step == "recs":
-        st.success("Hier ist dein Ergebnis:")
+        st.success(
+            "Hier ist dein Ergebnis:\n\n"
+            "Als nächsten Schritt klicke bitte auf den Laufschuh, für den du dich am ehesten entscheiden würdest."
+        )
 
         cols = st.columns(3)
         for i, item in enumerate(st.session_state.recs or []):
@@ -505,6 +505,5 @@ with page_slot.container():
         redirect_url = build_lime_redirect_url(LIME2_URL)
 
         st.link_button("Weiter zu Teil 2", redirect_url)
-
 
 
