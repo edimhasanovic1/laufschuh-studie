@@ -1,4 +1,5 @@
 import random
+import time
 from urllib.parse import urlencode
 
 import streamlit as st
@@ -21,11 +22,9 @@ CLUB_THEMES = {
     "SV Werder Bremen": ["#1D9053", "#FFFFFF"],
     "Borussia Dortmund": ["#FDE100", "#000000"],
     "Eintracht Frankfurt": ["#E1000F", "#000000"],
-
     "SC Freiburg": ["#000000", "#FFFFFF"],
     "1. FC Köln": ["#C8102E", "#FFFFFF"],
     "FC Bayern München": ["#A5001E", "#FFFFFF"],
-
     "Hamburger SV": ["#0A3F86", "#FFFFFF"],
     "1. FC Heidenheim": ["#003B79", "#E2001A"],
     "TSG 1899 Hoffenheim": ["#1961B5", "#FFFFFF"],
@@ -62,13 +61,12 @@ CLUB_INSIDER = {
 TRAITS = ["Innovativ", "Komfort", "Leicht", "Atmungsaktiv", "Dämpfung", "Stabilität"]
 
 # =====================================================
-# THEME / CSS (wie dein Startcode)
+# THEME / CSS
 # =====================================================
 def apply_theme(primary: str, secondary: str):
     st.markdown(
         f"""
         <style>
-        /* Hintergrund */
         .stApp {{
             background: linear-gradient(135deg, {primary} 0%, {secondary} 100%) !important;
         }}
@@ -76,7 +74,6 @@ def apply_theme(primary: str, secondary: str):
             background: rgba(255,255,255,0.18);
         }}
 
-        /* Headings / Standard-Text auf dem Gradient */
         h1, h2, h3 {{
             color: rgba(255,255,255,0.96) !important;
         }}
@@ -87,7 +84,6 @@ def apply_theme(primary: str, secondary: str):
             color: rgba(255,255,255,0.96) !important;
         }}
 
-        /* Alerts: Text weiß + glassy */
         div[data-testid="stAlert"] * {{
             color: rgba(255,255,255,0.96) !important;
         }}
@@ -96,7 +92,6 @@ def apply_theme(primary: str, secondary: str):
             border: 1px solid rgba(255,255,255,0.35) !important;
         }}
 
-        /* Karten (Empfehlung) mit dunklem Text */
         .nika-card {{
             border: 2px solid rgba(255,255,255,0.55);
             border-radius: 14px;
@@ -114,7 +109,7 @@ def apply_theme(primary: str, secondary: str):
             font-size: 1.05rem;
         }}
 
-        /* Buttons einheitlich */
+        /* Button-Schrift überall einheitlich "dünn" */
         div[data-testid="stButton"] > button,
         div[data-testid="stButton"] button,
         button[data-testid^="baseButton"] {{
@@ -122,17 +117,13 @@ def apply_theme(primary: str, secondary: str):
             border: 2px solid rgba(255,255,255,0.75) !important;
             background: rgba(255,255,255,0.92) !important;
             color: {DEFAULT_PRIMARY} !important;
-            font-weight: 600 !important;
-            font-synthesis: none !important;
+            font-weight: 400 !important;
             -webkit-font-smoothing: antialiased;
         }}
         div[data-testid="stButton"] > button *,
         div[data-testid="stButton"] button *,
         button[data-testid^="baseButton"] * {{
-            color: {DEFAULT_PRIMARY} !important;
-            font-weight: 600 !important;
-            font-synthesis: none !important;
-            -webkit-font-smoothing: antialiased;
+            font-weight: 400 !important;
         }}
         div[data-testid="stButton"] > button:hover,
         div[data-testid="stButton"] button:hover,
@@ -140,7 +131,6 @@ def apply_theme(primary: str, secondary: str):
             border: 2px solid rgba(0,0,0,0.25) !important;
         }}
 
-        /* Text-Inputs / Number inputs optisch passend (BaseWeb input) */
         div[data-baseweb="input"] > div {{
             background: rgba(255,255,255,0.92) !important;
             border: 2px solid rgba(255,255,255,0.75) !important;
@@ -149,15 +139,8 @@ def apply_theme(primary: str, secondary: str):
         div[data-baseweb="input"] * {{
             color: {DEFAULT_PRIMARY} !important;
             font-weight: 600 !important;
-            font-synthesis: none !important;
-            -webkit-font-smoothing: antialiased;
-        }}
-        div[data-baseweb="input"] > div:focus-within {{
-            box-shadow: none !important;
-            border: 2px solid rgba(0,0,0,0.25) !important;
         }}
 
-        /* Link-Buttons sichtbar */
         div[data-testid="stLinkButton"] a,
         a[data-testid="stLinkButton"] {{
             display: inline-block !important;
@@ -168,19 +151,14 @@ def apply_theme(primary: str, secondary: str):
             font-weight: 600 !important;
             text-decoration: none !important;
             padding: 0.45rem 0.9rem !important;
-            font-synthesis: none !important;
-            -webkit-font-smoothing: antialiased;
         }}
-        div[data-testid="stLinkButton"] a *,
-        a[data-testid="stLinkButton"] * {{
-            color: {DEFAULT_PRIMARY} !important;
-            font-weight: 600 !important;
-            font-synthesis: none !important;
-            -webkit-font-smoothing: antialiased;
-        }}
-        div[data-testid="stLinkButton"] a:hover,
-        a[data-testid="stLinkButton"]:hover {{
-            border: 2px solid rgba(0,0,0,0.25) !important;
+
+        div[data-testid="stChatMessage"] {{
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
         }}
         </style>
         """,
@@ -215,6 +193,10 @@ st.session_state.setdefault("prefs", {"typ": None, "tech": None, "weite": None, 
 st.session_state.setdefault("recs", None)
 st.session_state.setdefault("selected_shoe", None)
 
+st.session_state.setdefault("club_intro_done", False)
+st.session_state.setdefault("prefs_intro_done", False)
+st.session_state.setdefault("thinking_intro_done", False)
+
 # =====================================================
 # THEME-LOGIK
 # =====================================================
@@ -233,8 +215,26 @@ st.caption(f"Teilnahme-ID: {rid} | Gruppe: {group}")
 # =====================================================
 # HELPERS
 # =====================================================
+def render_typing_then_messages(messages: list[str], delay: float = 3.0):
+    with st.chat_message("assistant", avatar="👟"):
+        ph = st.empty()
+        ph.markdown("✍️ *Nika schreibt …*")
+        time.sleep(delay)
+        ph.markdown(messages[0])
+
+    for msg in messages[1:]:
+        with st.chat_message("assistant", avatar="👟"):
+            st.markdown(msg)
+
+def render_typing_then_block(messages: list[str], delay: float = 3.0):
+    block = "<br/><br/>".join(messages)
+    with st.chat_message("assistant", avatar="👟"):
+        ph = st.empty()
+        ph.markdown("✍️ *Nika schreibt …*")
+        time.sleep(delay)
+        ph.markdown(block, unsafe_allow_html=True)
+
 def render_toggle_row_single(title: str, options: list[str], state_key: str):
-    """Single-Choice Toggle Row (wie Schmal/Normal/Weit)."""
     st.write(f"**{title}**")
     cols = st.columns(len(options))
     current = st.session_state.prefs.get(state_key)
@@ -247,9 +247,6 @@ def render_toggle_row_single(title: str, options: list[str], state_key: str):
                 st.rerun()
 
 def render_toggle_grid_multi(title: str, options: list[str], state_key: str, max_select: int = 3, cols_n: int = 3):
-    """
-    Multi-Choice Toggle Buttons (max 3) -> Darstellung wie Buttons.
-    """
     st.write(f"**{title}**")
     selected: list[str] = list(st.session_state.get(state_key, []))
 
@@ -279,10 +276,6 @@ def render_toggle_grid_multi(title: str, options: list[str], state_key: str, max
         st.success("Perfekt – genau 3 Eigenschaften ausgewählt.")
 
 def build_lime_redirect_url(base_url: str) -> str:
-    """
-    Überträgt ALLES an LimeSurvey:
-    rid, group, club, traits, prefs, rec
-    """
     traits = list(st.session_state.traits or [])
     while len(traits) < 3:
         traits.append("")
@@ -304,212 +297,214 @@ def build_lime_redirect_url(base_url: str) -> str:
     return f"{base_url}&{urlencode(payload)}"
 
 def fixed_prices_from_user_budget(user_price: int) -> tuple[int, int, int]:
-    """
-    FleetRunner Basic = billigster
-    Striden X2 = mittlerer Preis
-    Aerli TempoOne = teuerster
-    Alles innerhalb 100..300 und strikt: billig < mittel < teuer
-    """
     base = int(user_price)
 
-    cheap = base - 30
-    mid = base - 5
-    expensive = base + 25
+    cheap = max(100, min(300, base - 30))
+    mid = max(100, min(300, base - 5))
+    expensive = max(100, min(300, base + 25))
 
-    # clamp
-    cheap = max(100, min(300, cheap))
-    mid = max(100, min(300, mid))
-    expensive = max(100, min(300, expensive))
-
-    # enforce strict order
-    # if bounds cause collisions, spread them deterministically
     if not (cheap < mid < expensive):
-        # start from base and spread
         cheap = max(100, min(300, base - 20))
         mid = max(100, min(300, base))
         expensive = max(100, min(300, base + 20))
 
-    # still not strict? final fallback safe defaults
     if not (cheap < mid < expensive):
         cheap, mid, expensive = 130, 160, 190
-
-    # final clamp (just in case)
-    cheap = max(100, min(300, cheap))
-    mid = max(100, min(300, mid))
-    expensive = max(100, min(300, expensive))
 
     return cheap, mid, expensive
 
 # =====================================================
-# STEP 1 – CLUB (mit Chatbot-Text)
+# PAGE SLOT (harte Seite, alte Inhalte sofort weg)
 # =====================================================
-if st.session_state.step == "club":
-    st.info("Hey! 👋 Ich bin **Nika**.")
-    st.write(
-        "Zum Einstieg: Mit welchem der 18 Bundesliga-Clubs identifizierst du dich am meisten?"
-    )
+page_slot = st.empty()
+page_slot.empty()
 
-    clubs = list(CLUB_THEMES.keys())
-    cols = st.columns(3)
-    for i, club in enumerate(clubs):
-        with cols[i % 3]:
-            if st.button(club, use_container_width=True, key=f"club_{club}"):
-                st.session_state.club = club
-                st.session_state.step = "traits"
+with page_slot.container():
+
+    if st.session_state.step == "club":
+
+        if not st.session_state.club_intro_done:
+            render_typing_then_messages(
+                [
+                    "Hallo! 👋 Ich bin **Nika** – dein **Laufschuh**-Assistent.",
+                    "Ich stelle dir ein paar kurze Fragen und suche dann passende Modelle für dich raus.",
+                    "Zum Einstieg: Mit welchem der **18 Bundesliga-Clubs** identifizierst du dich am meisten?",
+                ],
+                delay=3.0,
+            )
+            st.session_state.club_intro_done = True
+        else:
+            with st.chat_message("assistant", avatar="👟"):
+                st.markdown("Hallo! 👋 Ich bin **Nika** – dein **Laufschuh**-Assistent.")
+            with st.chat_message("assistant", avatar="👟"):
+                st.markdown("Ich stelle dir ein paar kurze Fragen und suche dann passende Modelle für dich raus.")
+            with st.chat_message("assistant", avatar="👟"):
+                st.markdown("Zum Einstieg: Mit welchem der **18 Bundesliga-Clubs** identifizierst du dich am meisten?")
+
+        clubs = list(CLUB_THEMES.keys())
+        cols = st.columns(3)
+        for i, club in enumerate(clubs):
+            with cols[i % 3]:
+                if st.button(club, use_container_width=True, key=f"club_{club}"):
+                    st.session_state.club = club
+                    st.session_state.step = "traits"
+                    st.rerun()
+
+    elif st.session_state.step == "traits":
+        st.success(f"Exzellente Wahl – {CLUB_INSIDER.get(st.session_state.club)}")
+        st.info("Als Nächstes: Welche **drei Eigenschaften** sollen deine neuen Laufschuhe unbedingt haben?")
+
+        render_toggle_grid_multi(
+            "Bitte genau drei auswählen:",
+            TRAITS,
+            state_key="traits",
+            max_select=3,
+            cols_n=3,
+        )
+
+        if len(st.session_state.traits) == 3:
+            if st.button("Auswahl speichern & weiter", type="primary"):
+                st.session_state.prefs_intro_done = False
+                st.session_state.step = "prefs"
                 st.rerun()
 
-# =====================================================
-# STEP 2 – TRAITS (Buttons, mit Chatbot-Text)
-# =====================================================
-elif st.session_state.step == "traits":
-    st.success(f"Exzellente Wahl – {CLUB_INSIDER.get(st.session_state.club)}")
-    st.info(
-        "Als Nächstes: Welche **drei Eigenschaften** sollen deine neuen Laufschuhe unbedingt haben?"
-    )
+    elif st.session_state.step == "prefs":
 
-    render_toggle_grid_multi(
-        "Bitte genau drei auswählen:",
-        TRAITS,
-        state_key="traits",
-        max_select=3,
-        cols_n=3,
-    )
-
-    if len(st.session_state.traits) == 3:
-        if st.button("Auswahl speichern & weiter", type="primary"):
-            st.session_state.step = "prefs"
-            st.rerun()
-
-# =====================================================
-# STEP 3 – KONKRETE WÜNSCHE (mit deinem Satz + Validierung)
-# =====================================================
-elif st.session_state.step == "prefs":
-    st.success(
-        "Danke. Die Auswahl wurde gespeichert. "
-        "Bitte gib nun deine konkreten Wünsche für die Sportschuhe ein. "
-        "Sie werden für die Auswahl benötigt."
-    )
-
-    render_toggle_row_single(
-        "Schuhtyp/Einsatzbereich:",
-        ["Training (Straße)", "Gelände (Trail)", "Wettkampf (Racing)"],
-        "typ",
-    )
-
-    render_toggle_row_single(
-        "Technologie:",
-        ["Keine", "Nylon", "Carbon"],
-        "tech",
-    )
-
-    render_toggle_row_single(
-        "Passform:",
-        ["Schmal", "Normal", "Weit"],
-        "weite",
-    )
-
-    st.write("**Preis (100–300 €):**")
-    price_default = st.session_state.prefs["preis"] if st.session_state.prefs["preis"] else 160
-    price = st.number_input(
-        "Bitte ganze Zahl eingeben:",
-        min_value=100,
-        max_value=300,
-        step=1,
-        value=int(price_default),
-        key="preis_input",
-    )
-    st.session_state.prefs["preis"] = int(price)
-
-    errors = []
-    if not st.session_state.prefs.get("typ"):
-        errors.append("Bitte wähle einen **Schuhtyp/Einsatzbereich**.")
-    if not st.session_state.prefs.get("tech"):
-        errors.append("Bitte wähle eine **Technologie**.")
-    if not st.session_state.prefs.get("weite"):
-        errors.append("Bitte wähle eine **Passform**.")
-    if len(st.session_state.traits) != 3:
-        errors.append("Bitte bestätige **genau drei Eigenschaften**.")
-    p = st.session_state.prefs.get("preis")
-    if not isinstance(p, int) or p < 100 or p > 300:
-        errors.append("**Preis**: Bitte eine ganze Zahl zwischen **100 und 300** eingeben.")
-
-    if errors:
-        st.info("Sobald alles ausgefüllt ist, kannst du die Empfehlung generieren.")
-        st.error("❌ " + "\n❌ ".join(errors))
-
-    if st.button("Empfehlung generieren", type="primary"):
-        if errors:
-            st.rerun()
-
-        # =====================================================
-        # FIXE EMPFEHLUNG (immer gleich) + Preislogik wie gefordert
-        # 1) Striden X2 – 4.7/5 (mittlerer Preis)
-        # 2) Aerli TempoOne – 4.6/5 (teuerster)
-        # 3) FleetRunner Basic – 4.3/5 (billigster)
-        # =====================================================
-        cheap, mid, expensive = fixed_prices_from_user_budget(int(st.session_state.prefs["preis"]))
-
-        st.session_state.recs = [
-            {"name": "Striden X2", "preis": mid, "rating": 4.7},
-            {"name": "Aerli TempoOne", "preis": expensive, "rating": 4.6},
-            {"name": "FleetRunner Basic", "preis": cheap, "rating": 4.3},
-        ]
-
-        st.session_state.step = "thinking"
-        st.rerun()
-
-# =====================================================
-# STEP 4 – "Denken"/Chatbot-Sätze (vor Empfehlung)
-# =====================================================
-elif st.session_state.step == "thinking":
-    traits_text = ", ".join(st.session_state.traits)
-
-    st.info("Super, danke für deine Angaben!")
-    st.info(
-        f"Ich suche jetzt ein Modell, das **{traits_text}** bietet – "
-        "und berücksichtige dabei auch deine weiteren Präferenzen."
-    )
-    st.info("Einen Moment – ich vergleiche passende Modelle…")
-
-    if st.button("Ergebnis anzeigen", type="primary"):
-        st.session_state.step = "recs"
-        st.rerun()
-
-# =====================================================
-# STEP 5 – EMPFEHLUNG (am Ende) + Buttons mit Schuhname
-# =====================================================
-elif st.session_state.step == "recs":
-    st.success("Hier ist dein Ergebnis:")
-
-    cols = st.columns(3)
-    for i, item in enumerate(st.session_state.recs or []):
-        with cols[i]:
-            st.markdown(
-                f"""
-                <div class="nika-card">
-                    <div class="nika-accent">{item["name"]}</div>
-                    Preis: {item["preis"]} €<br/>
-                    Bewertung: {item["rating"]:.1f} / 5
-                </div>
-                """,
-                unsafe_allow_html=True,
+        if not st.session_state.prefs_intro_done:
+            render_typing_then_messages(
+                [
+                    "Danke. Die Auswahl wurde gespeichert. Bitte gib nun deine konkreten Wünsche für die Sportschuhe ein. Sie werden für die Auswahl benötigt.",
+                ],
+                delay=3.0,
+            )
+            st.session_state.prefs_intro_done = True
+        else:
+            st.success(
+                "Danke. Die Auswahl wurde gespeichert. "
+                "Bitte gib nun deine konkreten Wünsche für die Sportschuhe ein. "
+                "Sie werden für die Auswahl benötigt."
             )
 
-            # Buttontext = Schuhname (wie gewünscht)
-            if st.button(item["name"], type="primary", use_container_width=True, key=f"pick_{i}"):
-                st.session_state.selected_shoe = item["name"]
-                st.session_state.step = "done"
+        render_toggle_row_single(
+            "Schuhtyp/Einsatzbereich:",
+            ["Training (Straße)", "Gelände (Trail)", "Wettkampf (Racing)"],
+            "typ",
+        )
+
+        render_toggle_row_single(
+            "Technologie:",
+            ["Keine", "Nylon", "Carbon"],
+            "tech",
+        )
+
+        render_toggle_row_single(
+            "Passform:",
+            ["Schmal", "Normal", "Weit"],
+            "weite",
+        )
+
+        st.write("**Preis (100–300 €):**")
+
+        # ✅ EINZIGE ÄNDERUNG: kein vorbefüllter Wert (kein "160" mehr).
+        # Wenn noch kein Preis gesetzt ist: starte bei min_value, aber zeige leer via placeholder-Label.
+        # Technisch muss number_input einen value haben -> wir setzen 100, aber ohne "Default-Story".
+        price_value = st.session_state.prefs["preis"]
+        if price_value is None:
+            price_value = 100
+
+        price = st.number_input(
+            "Bitte ganze Zahl eingeben:",
+            min_value=100,
+            max_value=300,
+            step=1,
+            value=int(price_value),
+            key="preis_input",
+        )
+        st.session_state.prefs["preis"] = int(price)
+
+        errors = []
+        if not st.session_state.prefs.get("typ"):
+            errors.append("Bitte wähle einen **Schuhtyp/Einsatzbereich**.")
+        if not st.session_state.prefs.get("tech"):
+            errors.append("Bitte wähle eine **Technologie**.")
+        if not st.session_state.prefs.get("weite"):
+            errors.append("Bitte wähle eine **Passform**.")
+        if len(st.session_state.traits) != 3:
+            errors.append("Bitte bestätige **genau drei Eigenschaften**.")
+        p = st.session_state.prefs.get("preis")
+        if not isinstance(p, int) or p < 100 or p > 300:
+            errors.append("**Preis**: Bitte eine ganze Zahl zwischen **100 und 300** eingeben.")
+
+        if errors:
+            st.info("Sobald alles ausgefüllt ist, kannst du die Empfehlung generieren.")
+            st.error("❌ " + "\n❌ ".join(errors))
+
+        if st.button("Empfehlung generieren", type="primary"):
+            if errors:
                 st.rerun()
 
-# =====================================================
-# STEP 6 – REDIRECT (ALLES an LimeSurvey)
-# =====================================================
-elif st.session_state.step == "done":
-    st.success(f"Auswahl gespeichert: **{st.session_state.selected_shoe}**")
+            cheap, mid, expensive = fixed_prices_from_user_budget(int(st.session_state.prefs["preis"]))
 
-    LIME2_URL = "https://umfragen.tu-dortmund.de/index.php/197954?lang=de"
-    redirect_url = build_lime_redirect_url(LIME2_URL)
+            st.session_state.recs = [
+                {"name": "Striden X2", "preis": mid, "rating": 4.7},
+                {"name": "Aerli TempoOne", "preis": expensive, "rating": 4.6},
+                {"name": "FleetRunner Basic", "preis": cheap, "rating": 4.3},
+            ]
 
-    st.link_button("Weiter zu Teil 2", redirect_url)
+            st.session_state.thinking_intro_done = False
+            st.session_state.step = "thinking"
+            st.rerun()
+
+    elif st.session_state.step == "thinking":
+        traits_text = ", ".join(st.session_state.traits)
+
+        thinking_msgs = [
+            "Super, danke für deine Angaben!",
+            f"Ich suche jetzt ein Modell, das **{traits_text}** bietet – und berücksichtige dabei auch deine weiteren Präferenzen.",
+            "Einen Moment – ich vergleiche passende Modelle…",
+        ]
+
+        if not st.session_state.thinking_intro_done:
+            render_typing_then_block(thinking_msgs, delay=3.0)
+            st.session_state.thinking_intro_done = True
+            st.rerun()
+        else:
+            with st.chat_message("assistant", avatar="👟"):
+                st.markdown("<br/><br/>".join(thinking_msgs), unsafe_allow_html=True)
+
+            if st.button("Ergebnis anzeigen", type="primary"):
+                st.session_state.step = "recs"
+                st.rerun()
+
+    elif st.session_state.step == "recs":
+        st.success("Hier ist dein Ergebnis:")
+
+        cols = st.columns(3)
+        for i, item in enumerate(st.session_state.recs or []):
+            with cols[i]:
+                st.markdown(
+                    f"""
+                    <div class="nika-card">
+                        <div class="nika-accent">{item["name"]}</div>
+                        Preis: {item["preis"]} €<br/>
+                        Bewertung: {item["rating"]:.1f} / 5
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                if st.button(item["name"], type="primary", use_container_width=True, key=f"pick_{i}"):
+                    st.session_state.selected_shoe = item["name"]
+                    st.session_state.step = "done"
+                    st.rerun()
+
+    elif st.session_state.step == "done":
+        st.success(f"Auswahl gespeichert: **{st.session_state.selected_shoe}**")
+
+        LIME2_URL = "https://umfragen.tu-dortmund.de/index.php/197954?lang=de"
+        redirect_url = build_lime_redirect_url(LIME2_URL)
+
+        st.link_button("Weiter zu Teil 2", redirect_url)
+
 
 
