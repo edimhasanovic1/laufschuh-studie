@@ -210,7 +210,7 @@ else:
 # UI HEADER
 # =====================================================
 st.title("👟 Nika – Laufschuh-Beratung")
-st.caption(f"Teilnahme-ID: {rid} | Gruppe: {group}")
+# st.caption(f"Teilnahme-ID: {rid} | Gruppe: {group}")  # <-- ausgeblendet (intern weiterhin vorhanden)
 
 # =====================================================
 # HELPERS
@@ -505,5 +505,6 @@ with page_slot.container():
         redirect_url = build_lime_redirect_url(LIME2_URL)
 
         st.link_button("Weiter zu Teil 2", redirect_url)
+
 
 
